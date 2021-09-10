@@ -1,7 +1,11 @@
 from flask import Flask
 import logging
+from aws_xray_sdk.core import xray_recorder
+from aws_xray_sdk.ext.flask.middleware import XRayMiddleware
 app = Flask(__name__)
 app.logger.setLevel(logging.INFO)
+xray_recorder.configure(service='demo flask-app')
+XRayMiddleware(app, xray_recorder)
 
 
 @app.route("/")
