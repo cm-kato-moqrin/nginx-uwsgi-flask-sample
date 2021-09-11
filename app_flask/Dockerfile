@@ -1,12 +1,12 @@
 FROM python:3.8.7-slim-buster
 
-RUN mkdir -p /project/config
-ARG dir=/project/
-COPY app_flask/requirements.txt $dir/requirements.txt
-WORKDIR $dir
+COPY ./requirements.txt /project/requirements.txt
+WORKDIR /project
 
 RUN apt update \
   && apt install -y gcc
 RUN pip install -r requirements.txt
+
+COPY . /project/
 
 ENTRYPOINT [ "uwsgi", "--ini", "/project/uwsgi.ini" ]

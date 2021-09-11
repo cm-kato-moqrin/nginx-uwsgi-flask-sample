@@ -1,0 +1,112 @@
+{
+  "family": "demo-app-gateway",
+  "memory": "512",
+  "cpu": "256",
+  "proxyConfiguration": {
+    "containerName": "gateway-envoy",
+    "properties": [
+      {
+        "name": "ProxyIngressPort",
+        "value": "15000"
+      },
+      {
+        "name": "EnvoyPorts",
+        "value": "9901"
+      },
+      {
+        "name": "EgressIgnoredIPs",
+        "value": "169.254.170.2,169.254.169.254"
+      },
+      {
+        "name": "EgressIgnoredPorts",
+        "value": "22"
+      },
+      {
+        "name": "IgnoredUID",
+        "value": "1337"
+      },
+      {
+        "name": "ProxyEgressPort",
+        "value": "15001"
+      }
+    ],
+    "type": "APPMESH"
+  },
+  "containerDefinitions": [
+    {
+      "name": "gateway-envoy",
+      "image": "840364872350.dkr.ecr.us-west-2.amazonaws.com/aws-appmesh-envoy:v1.19.1.0-prod",
+      "essential": true,
+      "environment": [
+        {
+          "name": "APPMESH_RESOURCE_ARN",
+          "value": "mesh/moq-mesh/virtualGateway/demo-app-gateway"
+        },
+        {
+          "name": "ENVOY_LOG_LEVEL",
+          "value": "debug"
+        },
+        {
+          "name": "ENABLE_ENVOY_XRAY_TRACING",
+          "value": "1"
+        }
+      ],
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "ulimits": [
+        {
+          "name": "nofile",
+          "softLimit": 15000,
+          "hardLimit": 15000
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/demo-app-gateway",
+          "awslogs-region": "ap-northeast-1",
+          "awslogs-stream-prefix": "gateway-envoy"
+        }
+      },
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "curl -s http://localhost:9901/server_info | grep state | grep -q LIVE"
+        ],
+        "interval": 5,
+        "timeout": 2,
+        "retries": 3,
+        "startPeriod": 60
+      },
+      "user": "1337"
+    },
+    {
+      "name": "xray",
+      "image": "amazon/aws-xray-daemon",
+      "user": "1337",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 2000,
+          "protocol": "udp"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/demo-app-gateway",
+          "awslogs-region": "ap-northeast-1",
+          "awslogs-stream-prefix": "xray"
+        }
+      }
+    }
+  ],
+  "requiresCompatibilities": ["FARGATE"],
+  "taskRoleArn": "arn:aws:iam::xxxxxx:role/demo-ecs-task-role",
+  "executionRoleArn": "arn:aws:iam::xxxxxxx:role/ecsTaskExecutionRole",
+  "networkMode": "awsvpc"
+}
